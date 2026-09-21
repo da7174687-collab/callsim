@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Bomb Simulator</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #111827, #1e3a8a);
+            color: white;
+        }
+
+        .container {
+            width: 420px;
+            max-width: 92%;
+            padding: 30px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #cbd5e1;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 6px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            outline: none;
+            font-size: 16px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        #start {
+            background: #22c55e;
+            color: white;
+        }
+
+        #stop {
+            background: #ef4444;
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .number {
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .log {
+            margin-top: 20px;
+            max-height: 180px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.25);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .log-item {
+            padding: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+        }
+
+        .call-popup {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            width: 300px;
+            padding: 20px;
+            border-radius: 15px;
+            background: #111827;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            animation: slideIn 0.4s ease;
+            z-index: 999;
+        }
+
+        .call-icon {
+            font-size: 35px;
+            text-align: center;
+        }
+
+        .incoming {
+            text-align: center;
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .caller {
+            text-align: center;
+            font-size: 20px;
+            margin: 8px 0;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(120%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>📞 Call Bomb Simulator</h1>
+
+    <p class="subtitle">
+        Browser-only simulation — no real calls are made.
+    </p>
+
+    <label>Phone Number</label>
+    <input
+        type="text"
+        id="phone"
+        placeholder="+91 XXXXX XXXXX"
+    >
+
+    <label>Interval (seconds)</label>
+    <input
+        type="number"
+        id="interval"
+        value="2"
+        min="1"
+    >
+
+    <label>Maximum Simulated Calls</label>
+    <input
+        type="number"
+        id="maxCalls"
+        value="10"
+        min="1"
+    >
+
+    <div class="buttons">
+        <button id="start">▶ Start</button>
+        <button id="stop" disabled>■ Stop</button>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="number" id="count">0</div>
+            <div>Calls</div>
+        </div>
+
+        <div class="stat">
+            <div class="number" id="status">OFF</div>
+            <div>Status</div>
+        </div>
+    </div>
+
+    <div class="log" id="log">
+        <div class="log-item">
+            Waiting to start simulation...
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+let timer = null;
+let callCount = 0;
+
+const phoneInput = document.getElementById("phone");
+const intervalInput = document.getElementById("interval");
+const maxCallsInput = document.getElementById("maxCalls");
+
+const startButton = document.getElementById("start");
+const stopButton = document.getElementById("stop");
+
+const countDisplay = document.getElementById("count");
+const statusDisplay = document.getElementById("status");
+const log = document.getElementById("log");
+
+startButton.addEventListener("click", startSimulation);
+stopButton.addEventListener("click", stopSimulation);
+
+function startSimulation() {
+
+    const phone = phoneInput.value.trim();
+    const interval = Number(intervalInput.value);
+    const maxCalls = Number(maxCallsInput.value);
+
+    if (!phone) {
+        alert("Please enter a simulated phone number.");
+        return;
+    }
+
+    if (interval < 1 || maxCalls < 1) {
+        alert("Enter valid values.");
+        return;
+    }
+
+    callCount = 0;
+
+    countDisplay.textContent = "0";
+    statusDisplay.textContent = "ON";
+
+    startButton.disabled = true;
+    stopButton.disabled = false;
+
+    addLog("Simulation started for " + phone);
+
+    simulateCall(phone, maxCalls, interval);
+}
+
+function simulateCall(phone, maxCalls, interval) {
+
+    if (callCount >= maxCalls) {
+        stopSimulation();
+        return;
+    }
+
+    callCount++;
+
+    countDisplay.textContent = callCount;
+
+    addLog(
+        "📞 Simulated call #" +
+        callCount +
+        " → " +
+        phone
+    );
+
+    showCallPopup(phone, callCount);
+
+    timer = setTimeout(() => {
+        simulateCall(phone, maxCalls, interval);
+    }, interval * 1000);
+}
+
+function stopSimulation() {
+
+    if (timer) {
+        clearTimeout(timer);
+        timer = null;
+    }
+
+    statusDisplay.textContent = "OFF";
+
+    startButton.disabled = false;
+    stopButton.disabled = true;
+
+    addLog("🛑 Simulation stopped.");
+}
+
+function addLog(message) {
+
+    const item = document.createElement("div");
+
+    item.className = "log-item";
+
+    const time = new Date().toLocaleTimeString();
+
+    item.textContent = time + " — " + message;
+
+    log.prepend(item);
+}
+
+function showCallPopup(phone, number) {
+
+    const popup = document.createElement("div");
+
+    popup.className = "call-popup";
+
+    popup.innerHTML = `
+        <div class="call-icon">📞</div>
+        <div class="incoming">INCOMING SIMULATED CALL</div>
+        <div class="caller">${phone}</div>
+        <div style="text-align:center">
+            Simulation Call #${number}
+        </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+        popup.remove();
+    }, 1500);
+}
+
+</script>
+
+</body>
+</html>
